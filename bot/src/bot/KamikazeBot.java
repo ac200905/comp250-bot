@@ -18,12 +18,12 @@ import rts.units.Unit;
 import rts.units.UnitType;
 import rts.units.UnitTypeTable;
 
-public class AdrianBot extends AbstractionLayerAI {    
+public class KamikazeBot extends AbstractionLayerAI {    
     private UnitTypeTable utt;
     private UnitType workerType;
     UnitType baseType;
     
-    public AdrianBot(UnitTypeTable utt) {
+    public KamikazeBot(UnitTypeTable utt) {
         super(new AStarPathFinding());
         this.utt = utt;
         workerType = utt.getUnitType("Worker");
@@ -41,7 +41,7 @@ public class AdrianBot extends AbstractionLayerAI {
     
     @Override
     public AI clone() {
-        return new AdrianBot(utt);
+        return new KamikazeBot(utt);
     }
    
     
