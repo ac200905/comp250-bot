@@ -20,18 +20,23 @@ import rts.units.UnitTypeTable;
 
 public class AdrianBot extends AbstractionLayerAI {    
     private UnitTypeTable utt;
-    private UnitType worker;
+    private UnitType workerType;
+    UnitType baseType;
     
     public AdrianBot(UnitTypeTable utt) {
         super(new AStarPathFinding());
         this.utt = utt;
-        worker = utt.getUnitType("Worker");
+        workerType = utt.getUnitType("Worker");
+        baseType = utt.getUnitType("Base");
     }
     
 
     @Override
     public void reset() {
+    	super.reset();
     }
+    
+    
 
     
     @Override
@@ -43,12 +48,53 @@ public class AdrianBot extends AbstractionLayerAI {
     @Override
     public PlayerAction getAction(int player, GameState gs) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
+        Player p = gs.getPlayer(player);
         
-        for (Unit unit : pgs.getUnits()) {
+        
+        		
             // TODO: issue commands to units
+        
+     // behavior of bases:
+        for(Unit u:pgs.getUnits()) {
+            if (u.getType()==baseType && 
+                u.getPlayer() == player && 
+                gs.getActionAssignment(u)==null) {
+                baseBehavior(u,p,pgs);
+            }
+        }
+        
+     // behavior of melee units:
+        for(Unit u:pgs.getUnits()) {
+            if (u.getType().canAttack && u.getType().canHarvest && 
+                u.getPlayer() == player && 
+                gs.getActionAssignment(u)==null) {
+                meleeUnitBehavior(u,p,gs);
+            }        
         }
         
         return translateActions(player, gs);
+    }
+    
+    public void baseBehavior(Unit u,Player p, PhysicalGameState pgs) {
+        if (p.getResources()>=workerType.cost) train(u, workerType);
+    }
+    
+    public void meleeUnitBehavior(Unit u, Player p, GameState gs) {
+        PhysicalGameState pgs = gs.getPhysicalGameState();
+        Unit closestEnemy = null;
+        int closestDistance = 0;
+        for(Unit u2:pgs.getUnits()) {
+            if (u2.getPlayer()>=0 && u2.getPlayer()!=p.getID()) { 
+                int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
+                if (closestEnemy==null || d<closestDistance) {
+                    closestEnemy = u2;
+                    closestDistance = d;
+                }
+            }
+        }
+        if (closestEnemy!=null) {
+            attack(u,closestEnemy);
+        }
     }
     
     @Override
