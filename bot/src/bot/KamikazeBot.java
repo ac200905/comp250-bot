@@ -22,6 +22,7 @@ public class KamikazeBot extends AbstractionLayerAI {
     private UnitTypeTable utt;
     private UnitType workerType;
     UnitType baseType;
+    boolean workerRush = false;
     
     public KamikazeBot(UnitTypeTable utt) {
         super(new AStarPathFinding());
@@ -49,6 +50,10 @@ public class KamikazeBot extends AbstractionLayerAI {
     public PlayerAction getAction(int player, GameState gs) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
         Player p = gs.getPlayer(player);
+        if (pgs.getWidth() * pgs.getHeight() <= 64) {
+        	workerRush = true;
+        }
+        	
         
         
         		
