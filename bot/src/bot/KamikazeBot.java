@@ -1,6 +1,8 @@
 package bot;
 
+import ai.abstraction.AbstractAction;
 import ai.abstraction.AbstractionLayerAI;
+import ai.abstraction.Harvest;
 import ai.abstraction.pathfinding.AStarPathFinding;
 import ai.core.AI;
 import ai.core.ParameterSpecification;
@@ -20,8 +22,8 @@ import rts.units.UnitType;
 import rts.units.UnitTypeTable;
 
 public class KamikazeBot extends AbstractionLayerAI {    
-    private UnitTypeTable utt;
-    private UnitType workerType;
+    UnitTypeTable utt;
+    UnitType workerType;
     UnitType baseType;
     UnitType barracksType;
     UnitType heavyType;
@@ -144,7 +146,7 @@ public class KamikazeBot extends AbstractionLayerAI {
                 if (u.getType().canAttack && u.getType().canHarvest && 
                     u.getPlayer() == player && 
                     gs.getActionAssignment(u)==null) {
-                    meleeUnitBehaviour(u,p,gs);
+                    //meleeUnitBehaviour(u,p,gs);
                 }        
             }
             
@@ -167,9 +169,11 @@ public class KamikazeBot extends AbstractionLayerAI {
                 if (u.getType().canAttack && u.getType().canHarvest && 
                     u.getPlayer() == player && 
                     gs.getActionAssignment(u)==null) {
-                    meleeUnitBehaviour(u,p,gs);
+                    //meleeUnitBehaviour(u,p,gs);
                 }        
             }
+            
+            workerBehaviour(myWorkers,p,gs);
             
             return translateActions(player, gs);
         }
@@ -208,11 +212,78 @@ public class KamikazeBot extends AbstractionLayerAI {
     	int nMyWorkers = myWorkers.size();
     	int nBases = 0;
     	int nGatherers = 0;
+    	int resourcesUsed = 0;
+        Unit harvestWorker = null;
     	
+    	List<Unit> freeWorkers = new LinkedList<Unit>();
+        freeWorkers.addAll(myWorkers);
+    	
+		if (myWorkers.isEmpty()) return;
+		        
+		for(Unit u2:pgs.getUnits()) {
+            if (u2.getType() == baseType && 
+                u2.getPlayer() == p.getID()) nBases++;
+        }
+		        
+		List<Integer> reservedPositions = new LinkedList<Integer>();
+        if (nBases==0 && !freeWorkers.isEmpty()) {
+            // build a base:
+            if (p.getResources()>=baseType.cost + resourcesUsed) {
+                Unit u = freeWorkers.remove(0);
+                buildIfNotAlreadyBuilding(u,baseType,u.getX(),u.getY(),reservedPositions,p,pgs);
+                resourcesUsed+=baseType.cost;
+            }
+        }
+        
+        if (freeWorkers.size()>0) harvestWorker = freeWorkers.remove(0);
+        
+        // harvest with the harvest worker:
+        if (harvestWorker!=null) {
+            Unit closestBase = null;
+            Unit closestResource = null;
+            int closestDistance = 0;
+            for(Unit u2:pgs.getUnits()) {
+                if (u2.getType().isResource) { 
+                    int d = Math.abs(u2.getX() - harvestWorker.getX()) + Math.abs(u2.getY() - harvestWorker.getY());
+                    if (closestResource==null || d<closestDistance) {
+                        closestResource = u2;
+                        closestDistance = d;
+                    }
+                }
+            }
+            closestDistance = 0;
+            for(Unit u2:pgs.getUnits()) {
+                if (u2.getType().isStockpile && u2.getPlayer()==p.getID()) { 
+                    int d = Math.abs(u2.getX() - harvestWorker.getX()) + Math.abs(u2.getY() - harvestWorker.getY());
+                    if (closestBase==null || d<closestDistance) {
+                        closestBase = u2;
+                        closestDistance = d;
+                    }
+                }
+            }
+            if (closestResource!=null && closestBase!=null) {
+                AbstractAction aa = getAbstractAction(harvestWorker);
+                if (aa instanceof Harvest) {
+                    Harvest h_aa = (Harvest)aa;
+                    if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) harvest(harvestWorker, closestResource, closestBase);
+                } else {
+                    harvest(harvestWorker, closestResource, closestBase);
+                }
+            }
+        }
+        
+        for(Unit u:freeWorkers) meleeUnitBehaviour(u, p, gs);
+        
     	if (nMyWorkers <= 4)
     	{
     		
     	}
+    	
+    	if (nMyWorkers > 5)
+    	{
+    		
+    	}
+    	
     	
     	//number of workers
     	//if number of workers created above 4, assign resource gatherer
