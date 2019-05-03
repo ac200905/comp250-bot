@@ -225,9 +225,13 @@ public class KamikazeBot extends AbstractionLayerAI {
 			// Choose a worker to harvest resources
 			if (myHarvesters.size() == 0 && numWorkersBuilt.size() > 4 && p.getResources() < 1)
 			{
-				Unit newHarvester = myWorkers.remove(0);
-				myHarvesters.add(newHarvester);
-				numHarvestersBuilt.add(newHarvester);
+				if(myWorkers.size() > 0)
+				{
+					Unit newHarvester = myWorkers.get(0);
+					myHarvesters.add(newHarvester);
+					numHarvestersBuilt.add(newHarvester);
+				}
+				
 			}
 			
 			// Harvest resource
