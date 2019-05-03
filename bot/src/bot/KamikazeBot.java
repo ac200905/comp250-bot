@@ -84,11 +84,11 @@ public class KamikazeBot extends AbstractionLayerAI {
         	mapSmall = true;
         }
         if (pgs.getWidth() * pgs.getHeight() > 100 
-        		&& pgs.getWidth() * pgs.getHeight() <= 144)
+        		&& pgs.getWidth() * pgs.getHeight() <= 256)
         {
         	mapMedium = true;
         }
-        if (pgs.getWidth() * pgs.getHeight() > 144)
+        if (pgs.getWidth() * pgs.getHeight() > 256)
         {
         	mapLarge = true;
         }
@@ -228,16 +228,19 @@ public class KamikazeBot extends AbstractionLayerAI {
         
 		if (mapSmall)
 		{
-			// Choose a worker to harvest resources
-			if (myHarvesters.size() == 0 && numWorkersBuilt.size() > 4 && p.getResources() < 1)
+			if (mapResources.size() > 0)
 			{
-				if(myWorkers.size() > 0)
+				// Choose a worker to harvest resources
+				if (myHarvesters.size() == 0 && myWorkers.size() > 0)
 				{
-					Unit newHarvester = myWorkers.get(0);
-					myHarvesters.add(newHarvester);
-					numHarvestersBuilt.add(newHarvester);
+					if(myWorkers.size() > 0)
+					{
+						Unit newHarvester = myWorkers.get(0);
+						myHarvesters.add(newHarvester);
+						numHarvestersBuilt.add(newHarvester);
+					}
+					
 				}
-				
 			}
 			
 			// Harvest resource
@@ -245,8 +248,11 @@ public class KamikazeBot extends AbstractionLayerAI {
 			{
 				for (Unit u: myHarvesters)
 				{
+					// Attack anything that comes in range
+					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
+								
 					harvestClosestResource(u, myBases, mapResources);
-					System.out.print("Harvesting!");
+					//System.out.print("Harvesting!");
 				}
 			}
 
@@ -257,7 +263,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 	    			// Attack anything that comes in range
 					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
-					if (numWorkersBuilt.size() > 3)
+					if (numWorkersBuilt.size() > 0)
 					{
 		    			if(enemyBases.isEmpty())
 		    			{
@@ -273,7 +279,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 	    	}
 			
 
-	        if (myBases.size() > 0 && myWorkers.size() < 10)
+	        if (myBases.size() > 0)
 	        {
 	        	for (Unit u: myBases)
 	        	{
@@ -282,13 +288,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        	}
 	        }
 	        
-	        if (myBarracks.size() > 0 && p.getResources() > 2)
-	        {
-	        	for (Unit u: myBarracks)
-	        	{
-	        		train(u, heavyType);
-	        	}
-	        }
+	        
 		}
 		
 		
@@ -319,13 +319,16 @@ public class KamikazeBot extends AbstractionLayerAI {
 			{
 				for (Unit u: myHarvesters)
 				{
+					// Attack anything that comes in range
+					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
+								
 					harvestClosestResource(u, myBases, mapResources);
 					//System.out.print("Harvesting!");
 				}
 			}
 			
 			// Assign a worker to build a barracks
-			if (myBarracks.size() < 1 && myWorkers.size() > 0 && p.getResources() >= 6)
+			if (myBarracks.size() < 1 && myWorkers.size() > 0 && p.getResources() >= 5)
 			{
 				Unit newBarracksBuilder = myWorkers.remove(0);
 				myBarracksBuilders.add(newBarracksBuilder);
@@ -341,6 +344,10 @@ public class KamikazeBot extends AbstractionLayerAI {
 					{
 						Unit initialBase = myBases.get(0);
 						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+					}
+					else
+					{
+						buildIfNotAlreadyBuilding(u, barracksType, u.getX(), u.getY(), reservedPositions,p,pgs);
 					}
 				}
 			}
@@ -417,13 +424,13 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        {
 	        	for (Unit u: myBarracks)
 	        	{
-	        		if (myRanged.size() <= myLights.size())
-	        		{
-	        			train(u, rangedType);
-	        		}
-	        		else if (myRanged.size() > myLights.size())
+	        		if (myLights.size() <= myRanged.size())
 	        		{
 	        			train(u, lightType);
+	        		}
+	        		else
+	        		{
+	        			train(u, rangedType);
 	        		}
 	        		
 	        	}
@@ -478,12 +485,12 @@ public class KamikazeBot extends AbstractionLayerAI {
 			}
 			
 			// Assign a worker to build a barracks
-			if (myBarracks.size() == 0 && myWorkers.size() > 0 && p.getResources() >= 6)
+			if (myBarracks.size() == 0 && myWorkers.size() > 0 && p.getResources() >= 5)
 			{
 				Unit newBarracksBuilder = myWorkers.remove(0);
 				myBarracksBuilders.add(newBarracksBuilder);
 			}
-			if (myBarracks.size() == 1 && myWorkers.size() > 0 && p.getResources() >= 10)
+			if (myBarracks.size() == 1 && myWorkers.size() > 0 && p.getResources() >= 7)
 			{
 				Unit newBarracksBuilder = myWorkers.remove(0);
 				myBarracksBuilders.add(newBarracksBuilder);
@@ -499,6 +506,10 @@ public class KamikazeBot extends AbstractionLayerAI {
 					{
 						Unit initialBase = myBases.get(0);
 						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+					}
+					else
+					{
+						buildIfNotAlreadyBuilding(u, barracksType, u.getX(), u.getY(), reservedPositions,p,pgs);
 					}
 					
 				}
@@ -584,13 +595,14 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        {
 	        	for (Unit u: myBarracks)
 	        	{
-	        		if (myRanged.size() < 2)
-	        		{
-	        			train(u, rangedType);
-	        		}
-	        		else if (myLights.size() < 2)
+	        		// Trains until 3 light and ranged, then trains heavy
+	        		if (myLights.size() <= myRanged.size() && myRanged.size() < 4)
 	        		{
 	        			train(u, lightType);
+	        		}
+	        		else if (myLights.size() > myRanged.size() && myRanged.size() < 4)
+	        		{
+	        			train(u, rangedType);
 	        		}
 	        		else
 	        		{
