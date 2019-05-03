@@ -36,6 +36,12 @@ public class KamikazeBot extends AbstractionLayerAI {
     boolean mapMedium = false;
     boolean mapLarge = false;
     boolean hasHarvester = false;
+    boolean armyAttack = false;
+    
+    List<Unit> numRangedBuilt = new LinkedList<Unit>();
+    List<Unit> numWorkersBuilt = new LinkedList<Unit>();
+    List<Unit> numHarvestersBuilt = new LinkedList<Unit>();
+    List<Unit> numHeaviesBuilt = new LinkedList<Unit>();
     
     public KamikazeBot(UnitTypeTable utt) {
         super(new AStarPathFinding());
@@ -71,11 +77,12 @@ public class KamikazeBot extends AbstractionLayerAI {
         
         
         // Check Size of Map
-        if (pgs.getWidth() * pgs.getHeight() <= 143)
+        if (pgs.getWidth() * pgs.getHeight() <= 100)
         {
         	mapSmall = true;
         }
-        if (pgs.getWidth() * pgs.getHeight() == 144)
+        if (pgs.getWidth() * pgs.getHeight() > 100 
+        		&& pgs.getWidth() * pgs.getHeight() <= 144)
         {
         	mapMedium = true;
         }
@@ -107,19 +114,21 @@ public class KamikazeBot extends AbstractionLayerAI {
      // Get a list of my ranged units
         List<Unit> myRanged = new LinkedList<Unit>();
         
-     // Create a list of my bases
+     // Create a list of enemy bases
         List<Unit> enemyBases = new LinkedList<Unit>();
-     // Create a list of my barracks
+     // Create a list of enemy barracks
         List<Unit> enemyBarracks = new LinkedList<Unit>();
       
-     // Create a list of my workers
+     // Create a list of enemy workers
         List<Unit> enemyWorkers = new LinkedList<Unit>();
-     // Create a list of my light units
+     // Create a list of enemy light units
         List<Unit> enemyLights = new LinkedList<Unit>();
-     // Create a list of my heavy units
+     // Create a list of enemy heavy units
         List<Unit> enemyHeavies = new LinkedList<Unit>();
-     // Get a list of my ranged units
+     // Get a list of enemy ranged units
         List<Unit> enemyRanged = new LinkedList<Unit>();
+     // Get a list of all enemy units
+        List<Unit> allEnemies = new LinkedList<Unit>();
         
         
         
@@ -138,54 +147,71 @@ public class KamikazeBot extends AbstractionLayerAI {
         {
         	if (u.getPlayer() == player)
         	{
-        		if (u.getType() == baseType && !myBases.contains(u))
+        		if (u.getType() == baseType)
         		{
         			myBases.add(u);
         		}
-        		if (u.getType() == barracksType && !myBarracks.contains(u))
+        		if (u.getType() == barracksType)
         		{
         			myBarracks.add(u);
         		}
-        		if (u.getType() == workerType && !myWorkers.contains(u))
+        		if (u.getType() == workerType)
         		{
         			myWorkers.add(u);
         		}
-        		if (u.getType() == lightType && !myLights.contains(u))
+        		if (u.getType() == workerType && !numWorkersBuilt.contains(u))
+        		{
+        			numWorkersBuilt.add(u);
+        		}
+        		if (u.getType() == lightType)
         		{
         			myLights.add(u);
         		}
-        		if (u.getType() == heavyType && !myHeavies.contains(u))
+        		if (u.getType() == heavyType)
         		{
         			myHeavies.add(u);
         		}
-        		if (u.getType() == rangedType && !myRanged.contains(u))
+        		if (u.getType() == heavyType && !numWorkersBuilt.contains(u))
+        		{
+        			numHeaviesBuilt.add(u);
+        		}
+        		if (u.getType() == rangedType)
         		{
         			myRanged.add(u);
+        		}
+        		if (u.getType() == rangedType && !numRangedBuilt.contains(u))
+        		{
+        			numRangedBuilt.add(u);
         		}
         	}
         	if (u.getPlayer() != player && u.getPlayer() != -1)
         	{
-        		if (u.getType() == baseType && !enemyBases.contains(u))
+        		allEnemies.add(u);
+        		if (u.getType() == baseType)
         		{
         			enemyBases.add(u);
         		}
-        		if (u.getType() == barracksType && !enemyBarracks.contains(u))
+        		if (u.getType() == baseType)
+        		{
+        			enemyBases.add(u);
+        		}
+        		if (u.getType() == barracksType)
         		{
         			enemyBarracks.add(u);
         		}
-        		if (u.getType() == workerType && !enemyWorkers.contains(u))
+        		if (u.getType() == workerType)
         		{
         			enemyWorkers.add(u);
         		}
-        		if (u.getType() == lightType && !enemyLights.contains(u))
+        		if (u.getType() == lightType)
         		{
         			enemyLights.add(u);
         		}
-        		if (u.getType() == heavyType && !enemyHeavies.contains(u))
+        		if (u.getType() == heavyType)
         		{
         			enemyHeavies.add(u);
         		}
-        		if (u.getType() == rangedType && !enemyRanged.contains(u))
+        		if (u.getType() == rangedType)
         		{
         			enemyRanged.add(u);
         		}
@@ -197,10 +223,11 @@ public class KamikazeBot extends AbstractionLayerAI {
 		if (mapSmall)
 		{
 			// Choose a worker to harvest resources
-			if (myHarvesters.size() == 0 && myWorkers.size() > 0 && p.getResources() <= 1)
+			if (myHarvesters.size() == 0 && numWorkersBuilt.size() > 4 && p.getResources() < 1)
 			{
 				Unit newHarvester = myWorkers.remove(0);
 				myHarvesters.add(newHarvester);
+				numHarvestersBuilt.add(newHarvester);
 			}
 			
 			// Harvest resource
@@ -218,15 +245,20 @@ public class KamikazeBot extends AbstractionLayerAI {
 	    	{
 	    		for (Unit u: myWorkers)
 				{
-	    			if(enemyBases.isEmpty())
-	    			{
-	    				attackNearestEnemy(u, p, gs);
-	    			}
-	    			else
-	    			{
-	    				attackNearestEnemy(u, p, gs);
-	    				//attackNearestEnemyBase(u, p, gs, enemyBases);
-	    			}
+	    			// Attack anything that comes in range
+					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
+					if (numWorkersBuilt.size() > 3)
+					{
+		    			if(enemyBases.isEmpty())
+		    			{
+		    				attackNearestEnemy(u, p, gs);
+		    			}
+		    			else
+		    			{
+		    				attackNearestEnemy(u, p, gs);
+		    				//attackNearestEnemyBase(u, p, gs, enemyBases);
+		    			}
+					}
 				}
 	    	}
 			
@@ -259,11 +291,13 @@ public class KamikazeBot extends AbstractionLayerAI {
 			{
 				Unit newHarvester = myWorkers.remove(0);
 		        myHarvesters.add(newHarvester);
+		        numHarvestersBuilt.add(newHarvester);
 			}
 			if (myHarvesters.size() == 1 && myWorkers.size() > 0)
 			{
 				Unit newHarvester = myWorkers.remove(0);
 		        myHarvesters.add(newHarvester);
+		        numHarvestersBuilt.add(newHarvester);
 			}
 			
 			// Harvest resource
@@ -272,7 +306,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 				for (Unit u: myHarvesters)
 				{
 					harvestClosestResource(u, myBases, mapResources);
-					System.out.print("Harvesting!");
+					//System.out.print("Harvesting!");
 				}
 			}
 			
@@ -306,19 +340,32 @@ public class KamikazeBot extends AbstractionLayerAI {
 			
 			// Any extra heavies will attack the nearest enemy
 			if (myHeavies.size() > 0)
-	    	{
-	    		for (Unit u: myHeavies)
+			{
+				for (Unit u: myHeavies)
 				{
-					attackNearestEnemy(u, p, gs);
+					// Attack anything that comes in range
+					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					// After a number of ranged units are built, attack
+					if (numHeaviesBuilt.size() > 0)
+					{
+						attackNearestEnemy(u, p, gs);
+									
+					}
 				}
-	    	}
+			}
 			
 			// Any extra ranged units will attack the nearest enemy
 			if (myRanged.size() > 0)
 			{
 				for (Unit u: myRanged)
 				{
-					attackNearestEnemy(u, p, gs);
+					// Attack anything that comes in range
+					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					// After a number of ranged units are built, attack
+					if (numRangedBuilt.size() > 2)
+					{
+						attackNearestEnemy(u, p, gs);
+					}
 				}
 			}
 			
@@ -332,12 +379,19 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        	}
 	        }
 	        
-	        // Train a Heavy when possible
+	     // Train a ranged when possible
 	        if (myBarracks.size() > 0 && p.getResources() > 2)
 	        {
 	        	for (Unit u: myBarracks)
 	        	{
-	        		train(u, rangedType);
+	        		if (myRanged.size() > 2)
+	        		{
+	        			train(u, heavyType);
+	        		}
+	        		else
+	        		{
+	        			train(u, rangedType);
+	        		}
 	        	}
 	        }
 		}
@@ -346,21 +400,31 @@ public class KamikazeBot extends AbstractionLayerAI {
 		
 		if (mapLarge)
 		{
-			// Choose 4 workers to harvest resources
+			// Choose 3 workers to harvest resources
 			if (myHarvesters.size() == 0 && myWorkers.size() > 0)
 			{
 				Unit newHarvester = myWorkers.remove(0);
 		        myHarvesters.add(newHarvester);
+		        if (!numWorkersBuilt.contains(newHarvester)) {
+		        	numHarvestersBuilt.add(newHarvester);
+		        }
+		        
 			}
 			if (myHarvesters.size() == 1 && myWorkers.size() > 0)
 			{
 				Unit newHarvester = myWorkers.remove(0);
 		        myHarvesters.add(newHarvester);
+		        if (!numWorkersBuilt.contains(newHarvester)) {
+		        	numHarvestersBuilt.add(newHarvester);
+		        }
 			}
 			if (myHarvesters.size() == 2 && myWorkers.size() > 0)
 			{
 				Unit newHarvester = myWorkers.remove(0);
 		        myHarvesters.add(newHarvester);
+		        if (!numWorkersBuilt.contains(newHarvester)) {
+		        	numHarvestersBuilt.add(newHarvester);
+		        }
 			}
 			
 			
@@ -370,7 +434,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 				for (Unit u: myHarvesters)
 				{
 					harvestClosestResource(u, myBases, mapResources);
-					System.out.print("Harvesting!");
+					//System.out.print("Harvesting!");
 				}
 			}
 			
@@ -410,9 +474,16 @@ public class KamikazeBot extends AbstractionLayerAI {
 			// Any extra heavies will attack the nearest enemy
 			if (myHeavies.size() > 0)
 	    	{
-	    		for (Unit u: myHeavies)
+				for (Unit u: myHeavies)
 				{
-					attackNearestEnemy(u, p, gs);
+					// Attack anything that comes in range
+					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					// After a number of ranged units are built, attack
+					if (numHeaviesBuilt.size() > 1)
+					{
+						attackNearestEnemy(u, p, gs);
+						
+					}
 				}
 	    	}
 			
@@ -421,12 +492,19 @@ public class KamikazeBot extends AbstractionLayerAI {
 			{
 				for (Unit u: myRanged)
 				{
-					attackNearestEnemy(u, p, gs);
+					// Attack anything that comes in range
+					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					// After a number of ranged units are built, attack
+					if (numRangedBuilt.size() > 2)
+					{
+						attackNearestEnemy(u, p, gs);
+						
+					}
 				}
 			}
 			
 			// Train workers unless there is already a spare
-	        if (myBases.size() > 0 && myWorkers.size() < 1)
+	        if (myBases.size() > 0 && myWorkers.size() < 1 && myBarracks.size() < 2)
 	        {
 	        	for (Unit u: myBases)
 	        	{
@@ -435,12 +513,12 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        	}
 	        }
 	        
-	        // Train a Heavy when possible
+	        // Train a ranged when possible
 	        if (myBarracks.size() > 0 && p.getResources() > 2)
 	        {
 	        	for (Unit u: myBarracks)
 	        	{
-	        		if (myBarracks.size() > 1)
+	        		if (myRanged.size() > 3)
 	        		{
 	        			train(u, heavyType);
 	        		}
@@ -450,6 +528,8 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        		}
 	        	}
 	        }
+	        //System.out.print(numRangedBuilt);
+	        
 		}
 		
         
@@ -520,6 +600,76 @@ public class KamikazeBot extends AbstractionLayerAI {
         if (closestEnemy!=null) {
             attack(u,closestEnemy);
         }
+    }
+    
+    public void attackEnemyInRange(Unit u, Player p, GameState gs, PhysicalGameState pgs, List<Unit> allEnemies) {
+        
+        
+        int uXPos = u.getX();
+        int uYPos = u.getY();
+        
+        //pgs.getUnitsAround(uXPos-3, uYPos-3, 25);
+        
+        List<Unit> closeUnits = new LinkedList<Unit>();
+        for(Unit u2: allEnemies) {
+        	int squareRange = 7;
+			int x = uXPos-3;
+			int y = uYPos-3;
+			if((Math.abs(u2.getX() - x )<=squareRange  &&  Math.abs(u2.getY() - y)<=squareRange)){
+        		closeUnits.add(u2);
+        	}
+        }
+        
+        Unit closestEnemy = null;
+        int closestDistance = 0;
+        for(Unit u3: closeUnits) {
+            if (u3.getPlayer()>=0 && u3.getPlayer()!=p.getID()) { 
+                int d = Math.abs(u3.getX() - u.getX()) + Math.abs(u3.getY() - u.getY());
+                if (closestEnemy==null || d<closestDistance) {
+                    closestEnemy = u3;
+                    closestDistance = d;
+                }
+            }
+        }
+        if (closestEnemy!=null) {
+            attack(u,closestEnemy);
+        }
+        
+    }
+    
+public void attackEnemyInRangeMelee(Unit u, Player p, GameState gs, PhysicalGameState pgs, List<Unit> allEnemies) {
+        
+        
+        int uXPos = u.getX();
+        int uYPos = u.getY();
+        
+        //pgs.getUnitsAround(uXPos-3, uYPos-3, 25);
+        
+        List<Unit> closeUnits = new LinkedList<Unit>();
+        for(Unit u2: allEnemies) {
+        	int squareRange = 3;
+			int x = uXPos-3;
+			int y = uYPos-3;
+			if((Math.abs(u2.getX() - x )<=squareRange  &&  Math.abs(u2.getY() - y)<=squareRange)){
+        		closeUnits.add(u2);
+        	}
+        }
+        
+        Unit closestEnemy = null;
+        int closestDistance = 0;
+        for(Unit u3: closeUnits) {
+            if (u3.getPlayer()>=0 && u3.getPlayer()!=p.getID()) { 
+                int d = Math.abs(u3.getX() - u.getX()) + Math.abs(u3.getY() - u.getY());
+                if (closestEnemy==null || d<closestDistance) {
+                    closestEnemy = u3;
+                    closestDistance = d;
+                }
+            }
+        }
+        if (closestEnemy!=null) {
+            attack(u,closestEnemy);
+        }
+        
     }
     
     /*
