@@ -327,8 +327,11 @@ public class KamikazeBot extends AbstractionLayerAI {
 			{
 				for (Unit u: myBarracksBuilders)
 				{
-					Unit initialBase = myBases.get(0);
-					buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+					if (!myBases.isEmpty())
+					{
+						Unit initialBase = myBases.get(0);
+						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+					}
 				}
 			}
 			
@@ -460,8 +463,12 @@ public class KamikazeBot extends AbstractionLayerAI {
 			{
 				for (Unit u: myBarracksBuilders)
 				{
-					Unit initialBase = myBases.get(0);
-					buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+					if (!myBases.isEmpty())
+					{
+						Unit initialBase = myBases.get(0);
+						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+					}
+					
 				}
 			}
 			
