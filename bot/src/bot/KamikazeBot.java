@@ -461,7 +461,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 			        	numHarvestersBuilt.add(newHarvester);
 			        }
 				}
-				if (myHarvesters.size() == 2 && myWorkers.size() > 0 && testFalse)
+				if (myHarvesters.size() == 2 && myWorkers.size() > 0)
 				{
 					Unit newHarvester = myWorkers.remove(0);
 			        myHarvesters.add(newHarvester);
