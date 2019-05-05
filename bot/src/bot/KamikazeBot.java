@@ -288,7 +288,10 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 					for(int n = 0; n < myBases.size(); n++)
 					{
-						createHarvester(myWorkers, myHarvesters);
+						if (!myWorkers.isEmpty())
+						{
+							createHarvester(myWorkers, myHarvesters);
+						}
 					}
 				}
 			}
@@ -374,7 +377,10 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 					for(int n = 0; n < myBases.size() + extraHarvesters; n++)
 					{
-						createHarvester(myWorkers, myHarvesters);
+						if (!myWorkers.isEmpty())
+						{
+							createHarvester(myWorkers, myHarvesters);
+						}
 					}
 					
 				}
@@ -532,9 +538,11 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 					for(int n = 0; n < myBases.size() + extraHarvesters; n++)
 					{
-						createHarvester(myWorkers, myHarvesters);
+						if (!myWorkers.isEmpty())
+						{
+							createHarvester(myWorkers, myHarvesters);
+						}
 					}
-					
 				}
 			}
 			
