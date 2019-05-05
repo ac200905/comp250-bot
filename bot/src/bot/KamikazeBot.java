@@ -21,6 +21,7 @@ import rts.units.Unit;
 import rts.units.UnitType;
 import rts.units.UnitTypeTable;
 
+
 public class KamikazeBot extends AbstractionLayerAI {    
     UnitTypeTable utt;
     UnitType workerType;
@@ -39,11 +40,19 @@ public class KamikazeBot extends AbstractionLayerAI {
     boolean hasHarvester = false;
     boolean armyAttack = false;
     
-    List<Unit> numRangedBuilt = new LinkedList<Unit>();
-    List<Unit> numWorkersBuilt = new LinkedList<Unit>();
-    List<Unit> numHarvestersBuilt = new LinkedList<Unit>();
-    List<Unit> numHeaviesBuilt = new LinkedList<Unit>();
-    List<Unit> numLightsBuilt = new LinkedList<Unit>();
+    
+    int extraHarvesters = 1;
+    int maxAttackWorkers = 1;
+    int buildOffsetX = 0;
+    int buildOffsetY = 0;
+    int rallyPointX = 0;
+    int rallyPointY = 0;
+    
+    List<Unit> everyMyRangedBuilt = new LinkedList<Unit>();
+    List<Unit> everyMyWorkersBuilt = new LinkedList<Unit>();
+    List<Unit> everyMyHarvestersBuilt = new LinkedList<Unit>();
+    List<Unit> everyMyHeaviesBuilt = new LinkedList<Unit>();
+    List<Unit> everyMyLightsBuilt = new LinkedList<Unit>();
     
     public KamikazeBot(UnitTypeTable utt) {
         super(new AStarPathFinding());
@@ -78,17 +87,17 @@ public class KamikazeBot extends AbstractionLayerAI {
         Player p = gs.getPlayer(player);
         
         
-        // Check Size of Map
-        if (pgs.getWidth() * pgs.getHeight() <= 100)
+        // Check Size of Map at start to determine which strategy to employ.
+        if (pgs.getWidth() * pgs.getHeight() <= 10 * 10)
         {
         	mapSmall = true;
         }
-        if (pgs.getWidth() * pgs.getHeight() > 100 
-        		&& pgs.getWidth() * pgs.getHeight() <= 256)
+        if (pgs.getWidth() * pgs.getHeight() > 10 * 10 
+        		&& pgs.getWidth() * pgs.getHeight() <=  16 * 16)
         {
         	mapMedium = true;
         }
-        if (pgs.getWidth() * pgs.getHeight() > 256)
+        if (pgs.getWidth() * pgs.getHeight() > 16 * 16)
         {
         	mapLarge = true;
         }
@@ -105,8 +114,6 @@ public class KamikazeBot extends AbstractionLayerAI {
         List<Unit> myWorkers = new LinkedList<Unit>();
      // Create a list of my resource workers
         List<Unit> myHarvesters = new LinkedList<Unit>();
-     // Create a list of my attack workers
-        List<Unit> myAttackWorkers = new LinkedList<Unit>();
      // Create a list of my barracks workers
         List<Unit> myBarracksBuilders = new LinkedList<Unit>();
      // Create a list of my light units
@@ -135,7 +142,7 @@ public class KamikazeBot extends AbstractionLayerAI {
         
         
         
-        /* -----------Put all units in the game in their respective lists----------------------*/
+        // Put all units in the game in their respective lists
         
         for (Unit r : pgs.getUnits()) 
         {
@@ -161,33 +168,33 @@ public class KamikazeBot extends AbstractionLayerAI {
         		{
         			myWorkers.add(u);
         		}
-        		if (u.getType() == workerType && !numWorkersBuilt.contains(u))
+        		if (u.getType() == workerType && !everyMyWorkersBuilt.contains(u))
         		{
-        			numWorkersBuilt.add(u);
+        			everyMyWorkersBuilt.add(u);
         		}
         		if (u.getType() == lightType)
         		{
         			myLights.add(u);
         		}
-        		if (u.getType() == lightType && !numLightsBuilt.contains(u))
+        		if (u.getType() == lightType && !everyMyLightsBuilt.contains(u))
         		{
-        			numLightsBuilt.add(u);
+        			everyMyLightsBuilt.add(u);
         		}
         		if (u.getType() == heavyType)
         		{
         			myHeavies.add(u);
         		}
-        		if (u.getType() == heavyType && !numWorkersBuilt.contains(u))
+        		if (u.getType() == heavyType && !everyMyWorkersBuilt.contains(u))
         		{
-        			numHeaviesBuilt.add(u);
+        			everyMyHeaviesBuilt.add(u);
         		}
         		if (u.getType() == rangedType)
         		{
         			myRanged.add(u);
         		}
-        		if (u.getType() == rangedType && !numRangedBuilt.contains(u))
+        		if (u.getType() == rangedType && !everyMyRangedBuilt.contains(u))
         		{
-        			numRangedBuilt.add(u);
+        			everyMyRangedBuilt.add(u);
         		}
         	}
         	if (u.getPlayer() != player && u.getPlayer() != -1)
@@ -224,23 +231,76 @@ public class KamikazeBot extends AbstractionLayerAI {
         	}
         }
         
-        /*--------------------What to do if on a small map----------------------*/
         
-		if (mapSmall)
+        // Finds the position the player base spawns on the map
+        if (!myBases.isEmpty())
+        {
+        	Unit base = myBases.get(0);
+        	boolean topLeft = isBaseTopLeft(pgs, base);
+        	boolean topRight = isBaseTopRight(pgs, base);
+        	boolean bottomLeft = isBaseBottomLeft(pgs, base);
+        	boolean bottomRight = isBaseBottomRight(pgs, base);
+        	
+        	// Changes where to build barracks based on where the player 
+        	// base spawns.
+        	if (topLeft){
+            	buildOffsetX = 1;
+            	buildOffsetY = 1;
+            }
+            
+            if (topRight){
+            	buildOffsetX = -1;
+            	buildOffsetY = 1;
+            }
+            
+            if (bottomLeft){
+            	buildOffsetX = 1;
+            	buildOffsetY = -1;
+            }
+            
+            if (bottomRight){
+            	buildOffsetX = -1;
+            	buildOffsetY = -1;
+            }
+        }
+        
+        
+        // Switch to worker rush if we have a lot of bases already
+        if (myBases.size() > 3 && mapMedium)
+        {
+        	mapMedium = false;
+        	workerRush = true;
+        }
+        
+
+        
+        
+        //===================================================================================================================
+	    // SMALL MAP STRATEGY
+	    //===================================================================================================================
+        
+		if (mapSmall || workerRush)
 		{
 			if (mapResources.size() > 0)
 			{
-				// Choose a worker to harvest resources
-				if (myHarvesters.size() == 0 && myWorkers.size() > 0)
+				// Creates a harvester for each base
+				if (myHarvesters.size() <= 2  && !myWorkers.isEmpty())
 				{
-					if(myWorkers.size() > 0)
+					for(int n = 0; n < myBases.size(); n++)
 					{
-						Unit newHarvester = myWorkers.get(0);
-						myHarvesters.add(newHarvester);
-						numHarvestersBuilt.add(newHarvester);
+						createHarvester(myWorkers, myHarvesters);
 					}
-					
 				}
+			}
+			
+			// Create more harvesters if a lot of resources present
+			if (mapResources.size() > 7 && !myWorkers.isEmpty() && myHarvesters.size() < 5)
+			{
+				for(int n = 0; n < myWorkers.size(); n++)
+				{
+					createHarvester(myWorkers, myHarvesters);
+				}
+				
 			}
 			
 			// Harvest resource
@@ -263,7 +323,15 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 	    			// Attack anything that comes in range
 					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
-					if (numWorkersBuilt.size() > 0)
+					
+					if (!myBases.isEmpty())
+					{
+						Unit base = myBases.get(0);
+						// Rally in front of base
+						moveToRallyPoint(u, pgs, gs, base, 0);
+					}
+					
+					if (everyMyWorkersBuilt.size() > 4)
 					{
 		    			if(enemyBases.isEmpty())
 		    			{
@@ -292,25 +360,23 @@ public class KamikazeBot extends AbstractionLayerAI {
 		}
 		
 		
-		/*--------------------What to do if on a medium sized map----------------------*/
+		//===================================================================================================================
+	    // MEDIUM MAP STRATEGY
+	    //===================================================================================================================
 		
 		if (mapMedium)
 		{
 			// If there are a decent amount of resources left
 			if(mapResources.size() > 0)
 			{
-				// Choose 2 workers to harvest resources
-				if (myHarvesters.size() == 0 && myWorkers.size() > 0)
+				// Creates a harvester for each base
+				if (myHarvesters.size() <= 1 + extraHarvesters && !myWorkers.isEmpty())
 				{
-					Unit newHarvester = myWorkers.remove(0);
-			        myHarvesters.add(newHarvester);
-			        numHarvestersBuilt.add(newHarvester);
-				}
-				if (myHarvesters.size() == 1 && myWorkers.size() > 0)
-				{
-					Unit newHarvester = myWorkers.remove(0);
-			        myHarvesters.add(newHarvester);
-			        numHarvestersBuilt.add(newHarvester);
+					for(int n = 0; n < myBases.size() + extraHarvesters; n++)
+					{
+						createHarvester(myWorkers, myHarvesters);
+					}
+					
 				}
 			}
 			
@@ -342,11 +408,13 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 					if (!myBases.isEmpty())
 					{
+						// Build near base
 						Unit initialBase = myBases.get(0);
-						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+buildOffsetX, initialBase.getY()+buildOffsetY, reservedPositions,p,pgs);
 					}
 					else
 					{
+						// Build where builder is
 						buildIfNotAlreadyBuilding(u, barracksType, u.getX(), u.getY(), reservedPositions,p,pgs);
 					}
 				}
@@ -368,9 +436,9 @@ public class KamikazeBot extends AbstractionLayerAI {
 				for (Unit u: myHeavies)
 				{
 					// Attack anything that comes in range
-					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					attackEnemyInBowRange(u, p, gs, pgs, allEnemies);
 					// After a number of ranged units are built, attack
-					if (numHeaviesBuilt.size() > 0)
+					if (everyMyHeaviesBuilt.size() > 0)
 					{
 						attackNearestEnemy(u, p, gs);
 									
@@ -385,8 +453,15 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 					// Attack anything that comes in range
 					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
+					
+					if (!myBases.isEmpty())
+					{
+						Unit base = myBases.get(0);
+						// Rally in front of base
+						moveToRallyPoint(u, pgs, gs, base, 3);
+					}
 					// After a number of ranged units are built, attack
-					if (numLightsBuilt.size() > 0)
+					if (everyMyLightsBuilt.size() > 0)
 					{
 						attackNearestEnemy(u, p, gs);
 												
@@ -400,9 +475,16 @@ public class KamikazeBot extends AbstractionLayerAI {
 				for (Unit u: myRanged)
 				{
 					// Attack anything that comes in range
-					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					attackEnemyInBowRange(u, p, gs, pgs, allEnemies);
+					
+					if (!myBases.isEmpty())
+					{
+						Unit base = myBases.get(0);
+						// Rally in front of base
+						moveToRallyPoint(u, pgs, gs, base, 1);
+					}
 					// After a number of ranged units are built, attack
-					if (numRangedBuilt.size() > 0)
+					if (everyMyRangedBuilt.size() > 3)
 					{
 						attackNearestEnemy(u, p, gs);
 					}
@@ -410,7 +492,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 			}
 			
 			// Train workers unless there is already a spare
-	        if (myBases.size() > 0 && myWorkers.size() < 1)
+	        if (myBases.size() > 0 && myWorkers.size() < maxAttackWorkers)
 	        {
 	        	for (Unit u: myBases)
 	        	{
@@ -437,37 +519,22 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        }
 		}
 		
-		/*--------------------What to do if on a larger map----------------------*/
+		//===================================================================================================================
+	    // LARGE MAP STRATEGY
+	    //===================================================================================================================
 		
 		if (mapLarge)
 		{
 			if (mapResources.size() > 0)
 			{
-				// Choose 3 workers to harvest resources
-				if (myHarvesters.size() == 0 && myWorkers.size() > 0)
+				// Creates a harvester for each base
+				if (myHarvesters.size() <= 1 + extraHarvesters && !myWorkers.isEmpty())
 				{
-					Unit newHarvester = myWorkers.remove(0);
-			        myHarvesters.add(newHarvester);
-			        if (!numWorkersBuilt.contains(newHarvester)) {
-			        	numHarvestersBuilt.add(newHarvester);
-			        }
-			        
-				}
-				if (myHarvesters.size() == 1 && myWorkers.size() > 0)
-				{
-					Unit newHarvester = myWorkers.remove(0);
-			        myHarvesters.add(newHarvester);
-			        if (!numWorkersBuilt.contains(newHarvester)) {
-			        	numHarvestersBuilt.add(newHarvester);
-			        }
-				}
-				if (myHarvesters.size() == 2 && myWorkers.size() > 0)
-				{
-					Unit newHarvester = myWorkers.remove(0);
-			        myHarvesters.add(newHarvester);
-			        if (!numWorkersBuilt.contains(newHarvester)) {
-			        	numHarvestersBuilt.add(newHarvester);
-			        }
+					for(int n = 0; n < myBases.size() + extraHarvesters; n++)
+					{
+						createHarvester(myWorkers, myHarvesters);
+					}
+					
 				}
 			}
 			
@@ -505,7 +572,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 					if (!myBases.isEmpty())
 					{
 						Unit initialBase = myBases.get(0);
-						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+2, initialBase.getY()+2, reservedPositions,p,pgs);
+						buildIfNotAlreadyBuilding(u, barracksType, initialBase.getX()+buildOffsetX, initialBase.getY()+buildOffsetY, reservedPositions,p,pgs);
 					}
 					else
 					{
@@ -540,7 +607,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 					// Attack anything that comes in range
 					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
 					// After a number of ranged units are built, attack
-					if (numHeaviesBuilt.size() > 0)
+					if (everyMyHeaviesBuilt.size() > 0)
 					{
 						attackNearestEnemy(u, p, gs);
 						
@@ -555,8 +622,15 @@ public class KamikazeBot extends AbstractionLayerAI {
 				{
 					// Attack anything that comes in range
 					attackEnemyInRangeMelee(u, p, gs, pgs, allEnemies);
+					
+					if (!myBases.isEmpty())
+					{
+						Unit base = myBases.get(0);
+						// Rally in front of base
+						moveToRallyPoint(u, pgs, gs, base, 3);
+					}
 					// After a number of ranged units are built, attack
-					if (numLightsBuilt.size() > 0)
+					if (everyMyLightsBuilt.size() > 3)
 					{
 						attackNearestEnemy(u, p, gs);
 									
@@ -570,9 +644,16 @@ public class KamikazeBot extends AbstractionLayerAI {
 				for (Unit u: myRanged)
 				{
 					// Attack anything that comes in range
-					attackEnemyInRange(u, p, gs, pgs, allEnemies);
+					attackEnemyInBowRange(u, p, gs, pgs, allEnemies);
+
+					if (!myBases.isEmpty())
+					{
+						Unit base = myBases.get(0);
+						// Rally in front of base
+						moveToRallyPoint(u, pgs, gs, base, 1);
+					}
 					// After a number of ranged units are built, attack
-					if (numRangedBuilt.size() > 0)
+					if (everyMyRangedBuilt.size() > 3)
 					{
 						attackNearestEnemy(u, p, gs);
 						
@@ -581,7 +662,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 			}
 			
 			// Train workers unless there is already a spare
-	        if (myBases.size() > 0 && myWorkers.size() < 1 && myBarracks.size() < 2)
+	        if (myBases.size() > 0 && myWorkers.size() < maxAttackWorkers)
 	        {
 	        	for (Unit u: myBases)
 	        	{
@@ -590,7 +671,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        	}
 	        }
 	        
-	        // Train a ranged when possible
+	        // Train a ranged unit when possible
 	        if (myBarracks.size() > 0 && p.getResources() > 2)
 	        {
 	        	for (Unit u: myBarracks)
@@ -610,15 +691,163 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        		}
 	        	}
 	        }
-	        //System.out.print(numRangedBuilt);
+	        
 	        
 		}
 		
         
         return translateActions(player, gs);
     }
-        
     
+    //===================================================================================================================
+    // Functions
+    //===================================================================================================================
+    
+    /**
+     * Takes a worker and turns it into a harvester.
+     */
+    public void createHarvester(List<Unit> myWorkers, List<Unit> myHarvesters)
+    {
+    	myHarvesters.add(myWorkers.get(0));
+	    myWorkers.remove(0);   
+    }
+    
+   
+    /**
+     * Determines if the Players Base is in the Top Left
+     * of the map.
+     */
+    public boolean isBaseTopLeft(PhysicalGameState pgs, Unit base) 
+    {
+        int x = base.getX() - (pgs.getWidth()/2); // x>0=right, x<0=left
+        int y = base.getY() - (pgs.getHeight()/2); //y>0=down, y<0=up
+
+        if (x < 0 && y <= 0)
+        {
+        	return true;
+        }
+        else
+        {
+        	return false;
+        }
+    }
+    
+    /**
+     * Determines if the Players Base is in the Top Right
+     * of the map.
+     */
+    public boolean isBaseTopRight(PhysicalGameState pgs, Unit base) 
+    {
+        int x = base.getX() - (pgs.getWidth()/2); // x>0=right, x<0=left
+        int y = base.getY() - (pgs.getHeight()/2); //y>0=down, y<0=up
+
+        if (x >=0 && y <=0)
+        {
+        	return true;
+        }
+        else
+        {
+        	return false;
+        }
+    }
+    
+    /**
+     * Determines if the Players Base is in the Bottom Left
+     * of the map.
+     */
+    public boolean isBaseBottomLeft(PhysicalGameState pgs, Unit base) 
+    {
+        int x = base.getX() - (pgs.getWidth()/2); // x>0=right, x<0=left
+        int y = base.getY() - (pgs.getHeight()/2); //y>0=down, y<0=up
+
+        if (x < 0 && y > 0)
+        {
+        	return true;
+        }
+        else
+        {
+        	return false;
+        }
+    }
+    
+    /**
+     * Determines if the Players Base is in the Bottom Right
+     * of the map.
+     */
+    public boolean isBaseBottomRight(PhysicalGameState pgs, Unit base) 
+    {
+        int x = base.getX() - (pgs.getWidth()/2); // x>0=right, x<0=left
+        int y = base.getY() - (pgs.getHeight()/2); //y>0=down, y<0=up
+
+        if (x >=0 && y > 0)
+        {
+        	return true;
+        }
+        else
+        {
+        	return false;
+        }
+    }
+    
+    /**
+     * Creates a set of rally points for the units to move 
+     * to based of the position of the Player Base on the map. 
+     */
+    public void moveToRallyPoint(Unit unit, PhysicalGameState pgs, GameState gs, Unit base, int rallyPointOffset)
+    {
+    	
+    	for (int n = 0; n < 6; n++)  
+    	{
+    		boolean topLeft = isBaseTopLeft(pgs, base);
+        	if (topLeft) 
+        	{
+        		boolean checkPath = pf.pathExists(unit, ((0 + (pgs.getWidth()/5)+rallyPointOffset+n) + (pgs.getHeight()/2-n) * pgs.getWidth()), gs, null);
+        		if (checkPath) 
+        		{
+        			move(unit, (0+rallyPointOffset+(pgs.getWidth()/5)+n), (pgs.getHeight()/2-n));
+        			break;
+        		}
+        	}
+        	
+        	boolean topRight = isBaseTopRight(pgs, base);
+        	if (topRight) 
+        	{
+        		boolean checkPath = pf.pathExists(unit, ((pgs.getWidth()-(pgs.getWidth()/5)-rallyPointOffset-n) + (pgs.getHeight()/2-n) * pgs.getWidth()), gs, null);
+        		if (checkPath) 
+        		{
+        			move(unit, (pgs.getWidth()-(pgs.getWidth()/5)-rallyPointOffset-n), (pgs.getHeight()/2-n));
+        			break;
+        		}
+        	}
+        	
+        	boolean bottomRight = isBaseBottomRight(pgs, base);
+        	if (bottomRight) 
+        	{
+        		boolean checkPath = pf.pathExists(unit, ((pgs.getWidth()-(pgs.getWidth()/5)-rallyPointOffset-n)+(pgs.getHeight()/2+n)*pgs.getWidth()), gs, null);
+        		if (checkPath) 
+        		{
+        			move(unit, ((pgs.getWidth())-(pgs.getWidth()/5)-rallyPointOffset-n), pgs.getHeight()/2+n);
+        			break;
+        		}
+        	}
+        	
+        	boolean bottomLeft = isBaseBottomLeft(pgs, base);
+        	if (bottomLeft) 
+        	{
+        		boolean checkPath = pf.pathExists(unit, ((0 + (pgs.getWidth()/5)+rallyPointOffset+n) + (pgs.getHeight()/2+n) * pgs.getWidth()), gs, null);
+        		if (checkPath) 
+        		{
+        			move(unit, (0+rallyPointOffset+(pgs.getWidth()/5)+n), (pgs.getHeight()/2+n));
+        			break;
+        		}
+        	}
+    	}	
+    }
+    
+    /**
+     * Sets unit to harvest the nearest resource and take it back
+     * to it's nearest base.
+     */
     public void harvestClosestResource(Unit harvestWorker, List<Unit> myBases, List<Unit> resources)
     {
     	Unit closestBase = null;
@@ -627,6 +856,7 @@ public class KamikazeBot extends AbstractionLayerAI {
         if (myBases.size() > 0)
         {
         	closestBase = myBases.get(0);
+        	MapUtils.d
         }
         for(Unit r:resources) 
         {
@@ -646,7 +876,9 @@ public class KamikazeBot extends AbstractionLayerAI {
         } 
     }
     
-    
+    /**
+     * Sets unit to attack the nearest enemy.
+     */
     public void attackNearestEnemy(Unit u, Player p, GameState gs) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
         Unit closestEnemy = null;
@@ -665,7 +897,9 @@ public class KamikazeBot extends AbstractionLayerAI {
         }
     }
     
-    
+    /**
+     * Sets unit to attack the nearest enemy Base.
+     */
     public void attackNearestEnemyBase(Unit u, Player p, GameState gs, List<Unit> enemyBases) {
         PhysicalGameState pgs = gs.getPhysicalGameState();
         Unit closestEnemy = null;
@@ -684,20 +918,21 @@ public class KamikazeBot extends AbstractionLayerAI {
         }
     }
     
-    public void attackEnemyInRange(Unit u, Player p, GameState gs, PhysicalGameState pgs, List<Unit> allEnemies) {
-        
-        
+    /**
+     * Tells unit to attack anything that comes within 3 spaces
+     * of itself.
+     */
+    public void attackEnemyInBowRange(Unit u, Player p, GameState gs, PhysicalGameState pgs, List<Unit> allEnemies) 
+    {
         int uXPos = u.getX();
         int uYPos = u.getY();
         
-        //pgs.getUnitsAround(uXPos-3, uYPos-3, 25);
-        
         List<Unit> closeUnits = new LinkedList<Unit>();
         for(Unit u2: allEnemies) {
-        	int squareRange = 7;
+        	int range = 7;
 			int x = uXPos-3;
 			int y = uYPos-3;
-			if((Math.abs(u2.getX() - x )<=squareRange  &&  Math.abs(u2.getY() - y)<=squareRange)){
+			if((Math.abs(u2.getX() - x )<=range  &&  Math.abs(u2.getY() - y)<=range)){
         		closeUnits.add(u2);
         	}
         }
@@ -716,23 +951,23 @@ public class KamikazeBot extends AbstractionLayerAI {
         if (closestEnemy!=null) {
             attack(u,closestEnemy);
         }
-        
     }
     
-public void attackEnemyInRangeMelee(Unit u, Player p, GameState gs, PhysicalGameState pgs, List<Unit> allEnemies) {
-        
-        
+    /**
+     * Tells unit to attack anything that comes within 1 space
+     * of itself.
+     */
+    public void attackEnemyInRangeMelee(Unit u, Player p, GameState gs, PhysicalGameState pgs, List<Unit> allEnemies) 
+	{
         int uXPos = u.getX();
         int uYPos = u.getY();
         
-        //pgs.getUnitsAround(uXPos-3, uYPos-3, 25);
-        
         List<Unit> closeUnits = new LinkedList<Unit>();
         for(Unit u2: allEnemies) {
-        	int squareRange = 3;
+        	int range = 3;
 			int x = uXPos-3;
 			int y = uYPos-3;
-			if((Math.abs(u2.getX() - x )<=squareRange  &&  Math.abs(u2.getY() - y)<=squareRange)){
+			if((Math.abs(u2.getX() - x )<=range  &&  Math.abs(u2.getY() - y)<=range)){
         		closeUnits.add(u2);
         	}
         }
@@ -751,160 +986,9 @@ public void attackEnemyInRangeMelee(Unit u, Player p, GameState gs, PhysicalGame
         if (closestEnemy!=null) {
             attack(u,closestEnemy);
         }
-        
-    }
-    
-    /*
-    // Barracks behaviour
-   // public void barracksBehaviour(Unit u, Player p, PhysicalGameState pgs) {
-   //     if (p.getResources() >= heavyType.cost) {
-   //         train(u, heavyType);
-   //     }
-   // }
-    
-    public void barracksBehaviour(List<Unit> myBarracks, Player p, GameState gs, PhysicalGameState pgs)
-    {
-    	int nMyBarracks = myBarracks.size();
-    	for (Unit u : myBarracks)
-    		if (p.getResources() >= heavyType.cost) {
-    			train(u, heavyType);
-        }
-    }
-    
-
-    
-    // Trains worker if it can
-    public void baseBehaviour(Unit u,Player p, PhysicalGameState pgs) {
-        int nMyWorkers = 0;
-        if (p.getResources()>=workerType.cost) {
-        	train(u, workerType);	
-        }
     }
     
     
-    public void meleeUnitBehaviour(Unit u, Player p, GameState gs) {
-        PhysicalGameState pgs = gs.getPhysicalGameState();
-        Unit closestEnemy = null;
-        int closestDistance = 0;
-        for(Unit u2:pgs.getUnits()) {
-            if (u2.getPlayer()>=0 && u2.getPlayer()!=p.getID()) { 
-                int d = Math.abs(u2.getX() - u.getX()) + Math.abs(u2.getY() - u.getY());
-                if (closestEnemy==null || d<closestDistance) {
-                    closestEnemy = u2;
-                    closestDistance = d;
-                }
-            }
-        }
-        if (closestEnemy!=null) {
-            attack(u,closestEnemy);
-        }
-    }
-    
-    
-    
-    
-    public void workerBehaviour(List<Unit> myWorkers, Player p, GameState gs, PhysicalGameState pgs)
-    {
-    	//PhysicalGameState pgs = gs.getPhysicalGameState();
-    	int nMyWorkers = myWorkers.size();
-    	int nBases = 0;
-    	int nBarracks = 0;
-    	int nGatherers = 0;
-    	int resourcesUsed = 0;
-        Unit harvestWorker = null;
-    	
-    	List<Unit> freeWorkers = new LinkedList<Unit>();
-    	List<Unit> attackWorkers = new LinkedList<Unit>();
-    	
-        freeWorkers.addAll(myWorkers);
-    	
-		if (myWorkers.isEmpty()) return;
-		
-		// Check how many bases and barracks there are
-		for(Unit u2:pgs.getUnits()) {
-            if (u2.getType() == baseType && 
-                u2.getPlayer() == p.getID()) nBases++;
-            
-            if (u2.getType() == barracksType && 
-                    u2.getPlayer() == p.getID()) nBarracks++;
-        }
-		
-
-		
-		        
-		
-		List<Integer> reservedPositions = new LinkedList<Integer>();
-		// Builds a base if there is none
-        if (nBases==0 && !freeWorkers.isEmpty()) {
-            // build a base:
-            if (p.getResources()>=baseType.cost + resourcesUsed) {
-                Unit u = freeWorkers.remove(0);
-                buildIfNotAlreadyBuilding(u,baseType,u.getX(),u.getY(),reservedPositions,p,pgs);
-                resourcesUsed+=baseType.cost;
-            }
-        }
-        
-     // Builds a barracks if there is none
-        if (nBarracks==0 && !freeWorkers.isEmpty()) {
-            // build a barracks:
-        	
-            if (p.getResources()>=barracksType.cost + resourcesUsed) {
-            	
-                Unit u = freeWorkers.remove(0);
-                buildIfNotAlreadyBuilding(u,barracksType,u.getX(),u.getY(),reservedPositions,p,pgs);
-                System.out.print("Hello");
-                resourcesUsed+=barracksType.cost;
-            }
-        }
-        
-        
-        // Create a harvest worker if there are more than 5 free workers
-        if (freeWorkers.size()>1) harvestWorker = freeWorkers.remove(0);
-        
-        
-        
-        // Harvest from the nearest resource
-        if (harvestWorker!=null) {
-            Unit closestBase = null;
-            Unit closestResource = null;
-            int closestDistance = 0;
-            for(Unit u2:pgs.getUnits()) {
-                if (u2.getType().isResource) { 
-                    int d = Math.abs(u2.getX() - harvestWorker.getX()) + Math.abs(u2.getY() - harvestWorker.getY());
-                    if (closestResource==null || d<closestDistance) {
-                        closestResource = u2;
-                        closestDistance = d;
-                    }
-                }
-            }
-            closestDistance = 0;
-            for(Unit u2:pgs.getUnits()) {
-                if (u2.getType().isStockpile && u2.getPlayer()==p.getID()) { 
-                    int d = Math.abs(u2.getX() - harvestWorker.getX()) + Math.abs(u2.getY() - harvestWorker.getY());
-                    if (closestBase==null || d<closestDistance) {
-                        closestBase = u2;
-                        closestDistance = d;
-                    }
-                }
-            }
-            if (closestResource!=null && closestBase!=null) {
-                AbstractAction aa = getAbstractAction(harvestWorker);
-                if (aa instanceof Harvest) {
-                    Harvest h_aa = (Harvest)aa;
-                    if (h_aa.getTarget() != closestResource || h_aa.getBase()!=closestBase) harvest(harvestWorker, closestResource, closestBase);
-                } else {
-                    harvest(harvestWorker, closestResource, closestBase);
-                }
-            }
-        }
-        
-        
-        // Set the rest of the workers to attack
-        for(Unit u:freeWorkers) attackNearestEnemy(u, p, gs);
-	
-    }
-    
-    */
     
     
     
