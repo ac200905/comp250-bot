@@ -64,6 +64,7 @@ public class KamikazeBot extends AbstractionLayerAI {
         heavyType = utt.getUnitType("Heavy");
         lightType = utt.getUnitType("Light");
         rangedType = utt.getUnitType("Ranged");
+        pf = new AStarPathFinding();
     }
     
 
@@ -637,7 +638,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 						// Rally in front of base
 						moveToRallyPoint(u, pgs, gs, base, 3);
 					}
-					// After a number of ranged units are built, attack
+					// After a number of light units are built, attack
 					if (everyMyLightsBuilt.size() > 3)
 					{
 						attackNearestEnemy(u, p, gs);
@@ -685,11 +686,11 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        	for (Unit u: myBarracks)
 	        	{
 	        		// Trains until 3 light and ranged, then trains heavy
-	        		if (myLights.size() <= myRanged.size() && myRanged.size() < 4)
+	        		if (myLights.size() <= myRanged.size() && myRanged.size() < 6)
 	        		{
 	        			train(u, lightType);
 	        		}
-	        		else if (myLights.size() > myRanged.size() && myRanged.size() < 4)
+	        		else if (myLights.size() > myRanged.size() && myRanged.size() < 6)
 	        		{
 	        			train(u, rangedType);
 	        		}
