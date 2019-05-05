@@ -856,7 +856,7 @@ public class KamikazeBot extends AbstractionLayerAI {
         if (myBases.size() > 0)
         {
         	closestBase = myBases.get(0);
-        	MapUtils.d
+        	
         }
         for(Unit r:resources) 
         {
