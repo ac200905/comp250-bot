@@ -350,7 +350,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 				}
 	    	}
 			
-
+			// Train workers if you can
 	        if (myBases.size() > 0)
 	        {
 	        	for (Unit u: myBases)
@@ -508,7 +508,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 	        	}
 	        }
 	        
-	        // Train a ranged when possible
+	        // Train a light or ranged when possible
 	        if (myBarracks.size() > 0 && p.getResources() > 2)
 	        {
 	        	for (Unit u: myBarracks)
@@ -561,12 +561,12 @@ public class KamikazeBot extends AbstractionLayerAI {
 			}
 			
 			// Assign a worker to build a barracks
-			if (myBarracks.size() == 0 && myWorkers.size() > 0 && p.getResources() >= 5)
+			if (myBarracks.size() == 0 && myWorkers.size() > 0 && p.getResources() >= barracksType.cost)
 			{
 				Unit newBarracksBuilder = myWorkers.remove(0);
 				myBarracksBuilders.add(newBarracksBuilder);
 			}
-			if (myBarracks.size() == 1 && myWorkers.size() > 0 && p.getResources() >= 7)
+			if (myBarracks.size() == 1 && myWorkers.size() > 0 && p.getResources() >= barracksType.cost)
 			{
 				Unit newBarracksBuilder = myWorkers.remove(0);
 				myBarracksBuilders.add(newBarracksBuilder);
@@ -574,7 +574,7 @@ public class KamikazeBot extends AbstractionLayerAI {
 			
 			// Build a barracks
 			List<Integer> reservedPositions = new LinkedList<Integer>();
-			if (myBarracksBuilders.size() > 0 && p.getResources() >= 5)
+			if (myBarracksBuilders.size() > 0 && p.getResources() >= barracksType.cost)
 			{
 				for (Unit u: myBarracksBuilders)
 				{
@@ -804,48 +804,57 @@ public class KamikazeBot extends AbstractionLayerAI {
      */
     public void moveToRallyPoint(Unit unit, PhysicalGameState pgs, GameState gs, Unit base, int rallyPointOffset)
     {
-    	
+    	// Will rally 6 units in a diagonal line in front of the players base 
     	for (int n = 0; n < 6; n++)  
     	{
+    		// Check map layout
     		boolean topLeft = isBaseTopLeft(pgs, base);
         	if (topLeft) 
         	{
+        		// Check there is a path to the rally point
         		boolean checkPath = pf.pathExists(unit, ((0 + (pgs.getWidth()/5)+rallyPointOffset+n) + (pgs.getHeight()/2-n) * pgs.getWidth()), gs, null);
         		if (checkPath) 
         		{
+        			// Move unit to that rally point
         			move(unit, (0+rallyPointOffset+(pgs.getWidth()/5)+n), (pgs.getHeight()/2-n));
         			break;
         		}
         	}
-        	
+        	// Check map layout
         	boolean topRight = isBaseTopRight(pgs, base);
         	if (topRight) 
         	{
+        		// Check there is a path to the rally point
         		boolean checkPath = pf.pathExists(unit, ((pgs.getWidth()-(pgs.getWidth()/5)-rallyPointOffset-n) + (pgs.getHeight()/2-n) * pgs.getWidth()), gs, null);
         		if (checkPath) 
         		{
+        			// Move unit to that rally point
         			move(unit, (pgs.getWidth()-(pgs.getWidth()/5)-rallyPointOffset-n), (pgs.getHeight()/2-n));
         			break;
         		}
         	}
-        	
+        	// Check map layout
         	boolean bottomRight = isBaseBottomRight(pgs, base);
         	if (bottomRight) 
         	{
+        		// Check there is a path to the rally point
         		boolean checkPath = pf.pathExists(unit, ((pgs.getWidth()-(pgs.getWidth()/5)-rallyPointOffset-n)+(pgs.getHeight()/2+n)*pgs.getWidth()), gs, null);
         		if (checkPath) 
         		{
+        			// Move unit to that rally point
         			move(unit, ((pgs.getWidth())-(pgs.getWidth()/5)-rallyPointOffset-n), pgs.getHeight()/2+n);
         			break;
         		}
         	}
-        	
+        	// Check map layout
         	boolean bottomLeft = isBaseBottomLeft(pgs, base);
         	if (bottomLeft) 
         	{
+        		// Check there is a path to the rally point
         		boolean checkPath = pf.pathExists(unit, ((0 + (pgs.getWidth()/5)+rallyPointOffset+n) + (pgs.getHeight()/2+n) * pgs.getWidth()), gs, null);
         		if (checkPath) 
         		{
+        			// Move unit to that rally point
         			move(unit, (0+rallyPointOffset+(pgs.getWidth()/5)+n), (pgs.getHeight()/2+n));
         			break;
         		}
